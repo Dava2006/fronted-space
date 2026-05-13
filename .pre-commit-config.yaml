@@ -1,0 +1,22 @@
+repos:
+  # Hooks generales
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+
+  # ESLint para JavaScript/JSX
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v10.3.0
+    hooks:
+      - id: eslint
+        files: \.(js|jsx)$
+        additional_dependencies:
+          - eslint@^10.3.0
+          - globals@^17.6.0
+          - eslint-plugin-react-hooks@^7.1.1
+          - eslint-plugin-react-refresh@^0.5.2
+          - "@eslint/js@^10.0.1"
