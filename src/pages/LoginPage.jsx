@@ -5,17 +5,29 @@ import api from '../api/axiosConfig'
 
 export default function LoginPage() {
   const [isRegister, setIsRegister] = useState(false)
-  const [error, setError] = useState('')
+  const [loginData, setLoginData] = useState({ email: '', password: '' })
+  const [registerData, setRegisterData] = useState({
+    nombreUsuario: '', nombre: '', apellido: '',
+    email: '', password: '', telefono: '', fechaNacimiento: ''
+  })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [showForgot, setShowForgot] = useState(false)
   const [forgotEmail, setForgotEmail] = useState('')
   const [forgotStatus, setForgotStatus] = useState('')
   const navigate = useNavigate()
 
-  const [loginData, setLoginData] = useState({ email: '', password: '' })
-  const [registerData, setRegisterData] = useState({
-    nombreUsuario: '', nombre: '', apellido: '',
-    email: '', password: '', telefono: '', fechaNacimiento: ''
+  const loginConGoogle = useGoogleLogin({
+    onSuccess: async (response) => {
+      try {
+        const res = await api.post('/auth/google', { accessToken: response.access_token })
+        guardarSesion(res.data)
+        navigate('/')
+      } catch (err) {
+        setError(err.response?.data?.message || 'Error al iniciar sesión con Google')
+      }
+    },
+    onError: () => setError('Error al conectar con Google'),
   })
 
   useEffect(() => {
@@ -65,23 +77,6 @@ export default function LoginPage() {
     }
   }
 
-  const handleGoogleLogin = useGoogleLogin({
-    onSuccess: async (response) => {
-      setError('')
-      setLoading(true)
-      try {
-        const res = await api.post('/auth/google', { accessToken: response.access_token })
-        guardarSesion(res.data)
-        navigate('/')
-      } catch (err) {
-        setError(err.response?.data?.message || 'Error al iniciar sesión con Google')
-      } finally {
-        setLoading(false)
-      }
-    },
-    onError: () => setError('Error al iniciar sesión con Google')
-  })
-
   async function handleForgotPassword(e) {
     e.preventDefault()
     setForgotStatus('loading')
@@ -89,13 +84,14 @@ export default function LoginPage() {
       await api.post('/auth/forgot-password', { email: forgotEmail })
       setForgotStatus('success')
     } catch (err) {
-      setForgotStatus(err.response?.data?.message || 'Error al enviar el email')
+      setForgotStatus(err.response?.data?.message || 'Error al enviar el correo')
     }
   }
 
-  function cambiarModo(registro) {
-    setIsRegister(registro)
-    setError('')
+  function cerrarModalForgot() {
+    setShowForgot(false)
+    setForgotStatus('')
+    setForgotEmail('')
   }
 
   return (
@@ -121,7 +117,7 @@ export default function LoginPage() {
               <h1>Te damos la bienvenida</h1>
               <p className="login-subtitle">Inicia sesión para planificar tu próxima aventura.</p>
 
-              <button className="btn-google" onClick={() => handleGoogleLogin()}>
+              <button className="btn-google" type="button" onClick={() => loginConGoogle()}>
                 <img
                   src="https://www.svgrepo.com/show/475656/google-color.svg"
                   alt="Google Logo"
@@ -138,10 +134,7 @@ export default function LoginPage() {
                 <div className="input-group">
                   <label htmlFor="email">Email</label>
                   <input
-                    type="email"
-                    id="email"
-                    placeholder="ejemplo@correo.com"
-                    required
+                    type="email" id="email" placeholder="ejemplo@correo.com" required
                     value={loginData.email}
                     onChange={e => setLoginData({ ...loginData, email: e.target.value })}
                   />
@@ -149,16 +142,20 @@ export default function LoginPage() {
                 <div className="input-group">
                   <label htmlFor="password">Contraseña</label>
                   <input
-                    type="password"
-                    id="password"
-                    placeholder="••••••••"
-                    required
+                    type="password" id="password" placeholder="••••••••" required
                     value={loginData.password}
                     onChange={e => setLoginData({ ...loginData, password: e.target.value })}
                   />
                 </div>
                 <div className="login-options">
-                  <a href="#" className="forgot-password" onClick={e => { e.preventDefault(); setShowForgot(true); setForgotStatus(''); setForgotEmail('') }}>
+                  <label className="remember-me">
+                    <input type="checkbox" /> Recuérdame
+                  </label>
+                  <a
+                    href="#"
+                    className="forgot-password"
+                    onClick={e => { e.preventDefault(); setShowForgot(true) }}
+                  >
                     ¿Olvidaste tu contraseña?
                   </a>
                 </div>
@@ -169,7 +166,7 @@ export default function LoginPage() {
 
               <p className="login-footer">
                 ¿No tienes cuenta?{' '}
-                <a href="#" onClick={e => { e.preventDefault(); cambiarModo(true) }}>
+                <a href="#" onClick={e => { e.preventDefault(); setIsRegister(true); setError('') }}>
                   Regístrate gratis
                 </a>
               </p>
@@ -183,9 +180,7 @@ export default function LoginPage() {
                 <div className="input-group">
                   <label>Nombre de usuario</label>
                   <input
-                    type="text"
-                    placeholder="mi_usuario"
-                    required
+                    type="text" placeholder="mi_usuario" required
                     value={registerData.nombreUsuario}
                     onChange={e => setRegisterData({ ...registerData, nombreUsuario: e.target.value })}
                   />
@@ -194,9 +189,7 @@ export default function LoginPage() {
                   <div className="input-group">
                     <label>Nombre</label>
                     <input
-                      type="text"
-                      placeholder="Juan"
-                      required
+                      type="text" placeholder="Juan" required
                       value={registerData.nombre}
                       onChange={e => setRegisterData({ ...registerData, nombre: e.target.value })}
                     />
@@ -204,9 +197,7 @@ export default function LoginPage() {
                   <div className="input-group">
                     <label>Apellido</label>
                     <input
-                      type="text"
-                      placeholder="García"
-                      required
+                      type="text" placeholder="García" required
                       value={registerData.apellido}
                       onChange={e => setRegisterData({ ...registerData, apellido: e.target.value })}
                     />
@@ -215,9 +206,7 @@ export default function LoginPage() {
                 <div className="input-group">
                   <label>Email</label>
                   <input
-                    type="email"
-                    placeholder="ejemplo@correo.com"
-                    required
+                    type="email" placeholder="ejemplo@correo.com" required
                     value={registerData.email}
                     onChange={e => setRegisterData({ ...registerData, email: e.target.value })}
                   />
@@ -225,9 +214,7 @@ export default function LoginPage() {
                 <div className="input-group">
                   <label>Contraseña</label>
                   <input
-                    type="password"
-                    placeholder="••••••••"
-                    required
+                    type="password" placeholder="••••••••" required
                     value={registerData.password}
                     onChange={e => setRegisterData({ ...registerData, password: e.target.value })}
                   />
@@ -236,8 +223,7 @@ export default function LoginPage() {
                   <div className="input-group">
                     <label>Teléfono</label>
                     <input
-                      type="tel"
-                      placeholder="+34 600 000 000"
+                      type="tel" placeholder="+34 600 000 000"
                       value={registerData.telefono}
                       onChange={e => setRegisterData({ ...registerData, telefono: e.target.value })}
                     />
@@ -251,14 +237,14 @@ export default function LoginPage() {
                     />
                   </div>
                 </div>
-                <button type="submit" className="btn-submit" style={{ marginTop: '10px' }} disabled={loading}>
+                <button type="submit" className="btn-submit" disabled={loading} style={{ marginTop: '10px' }}>
                   {loading ? 'Cargando...' : 'Crear cuenta'}
                 </button>
               </form>
 
               <p className="login-footer">
                 ¿Ya tienes cuenta?{' '}
-                <a href="#" onClick={e => { e.preventDefault(); cambiarModo(false) }}>
+                <a href="#" onClick={e => { e.preventDefault(); setIsRegister(false); setError('') }}>
                   Inicia sesión
                 </a>
               </p>
@@ -266,32 +252,29 @@ export default function LoginPage() {
           )}
         </div>
       </div>
+
       {showForgot && (
-        <div className="modal-overlay" onClick={() => setShowForgot(false)}>
+        <div className="modal-overlay" onClick={cerrarModalForgot}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setShowForgot(false)}>
+            <button className="modal-close" onClick={cerrarModalForgot}>
               <i className="ph ph-x"></i>
             </button>
             <h2 className="modal-title">Recuperar contraseña</h2>
+            <p className="modal-description">
+              Introduce tu email y te enviaremos un enlace para restablecer tu contraseña.
+            </p>
 
             {forgotStatus === 'success' ? (
-              <p className="login-success">
-                Te hemos enviado un email con el enlace de recuperación. Revisa tu bandeja de entrada.
-              </p>
+              <p className="login-success">Correo enviado. Revisa tu bandeja de entrada.</p>
             ) : (
               <form onSubmit={handleForgotPassword}>
-                <p className="modal-description">
-                  Introduce tu email y te enviaremos un enlace para restablecer tu contraseña.
-                </p>
-                {typeof forgotStatus === 'string' && forgotStatus !== '' && forgotStatus !== 'loading' && (
+                {forgotStatus && forgotStatus !== 'loading' && (
                   <p className="login-error">{forgotStatus}</p>
                 )}
                 <div className="input-group">
                   <label>Email</label>
                   <input
-                    type="email"
-                    placeholder="ejemplo@correo.com"
-                    required
+                    type="email" placeholder="ejemplo@correo.com" required
                     value={forgotEmail}
                     onChange={e => setForgotEmail(e.target.value)}
                   />

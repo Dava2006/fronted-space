@@ -1,12 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 
 export default function Sidebar() {
-  const navClass = ({ isActive }) => `nav-item${isActive ? ' active' : ''}`
   const navigate = useNavigate()
   const nombreUsuario = localStorage.getItem('nombreUsuario')
+  const navClass = ({ isActive }) => `nav-item${isActive ? ' active' : ''}`
 
   function handleLogout() {
-    ;['token', 'usuarioId', 'nombreUsuario', 'nombre', 'email'].forEach(k => localStorage.removeItem(k))
+    ['token', 'usuarioId', 'nombreUsuario', 'nombre', 'email'].forEach(k => localStorage.removeItem(k))
     navigate('/login')
   }
 
@@ -36,8 +36,10 @@ export default function Sidebar() {
       <div className="sidebar-footer">
         {nombreUsuario ? (
           <>
-            <p className="sidebar-username">{nombreUsuario}</p>
-            <button className="nav-item login-link" onClick={handleLogout}>
+            <span className="sidebar-username">
+              <i className="ph ph-user-circle"></i> {nombreUsuario}
+            </span>
+            <button className="nav-item login-link" onClick={handleLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
               <i className="ph ph-sign-out"></i> Cerrar Sesión
             </button>
           </>
