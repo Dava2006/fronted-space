@@ -8,6 +8,35 @@ const PLACES = [
   { id: 'p3', name: 'Punto de interés 3', desc: 'Naturaleza y paz' },
 ]
 
+const SERVICIOS_HOTEL = [
+  'Pensión completa',
+  'Todo incluido',
+  'Media Pensión',
+  'A la carta',
+  'Servicio de habitaciones',
+  'Atención al cliente',
+  'Piscina',
+  'Animación nocturna',
+  'Club infantil',
+  'Bienestar y deporte',
+  'Tours locales',
+  'WiFi gratis',
+  'Aparcamiento',
+]
+
+const TIPOS_ACTIVIDAD = [
+  'Museo',
+  'Arte',
+  'Historia',
+  'Naturaleza',
+  'Gastronomía',
+  'Deporte',
+  'Entretenimiento',
+  'Tour',
+  'Aventura',
+  'Cultura',
+]
+
 export default function HomePage() {
   const navigate = useNavigate()
 
@@ -26,15 +55,29 @@ export default function HomePage() {
   const [origenVuelo, setOrigenVuelo] = useState('')
   const [fechaIda, setFechaIda] = useState('')
   const [adultosVuelo, setAdultosVuelo] = useState(1)
+  const [claseVuelo, setClaseVuelo] = useState('ECONOMY')
   const [flightPrice, setFlightPrice] = useState(1000)
 
   const [checkIn, setCheckIn] = useState('')
   const [checkOut, setCheckOut] = useState('')
-  const [adultosHotel, setAdultosHotel] = useState(1)
-  const [hotelPrice, setHotelPrice] = useState(200)
+  const [personasPorHab, setPersonasPorHab] = useState(1)
+  const [habitacionesHotel, setHabitacionesHotel] = useState(0)
+  const [serviciosHotel, setServiciosHotel] = useState([])
+  const [serviciosOpen, setServiciosOpen] = useState(false)
+  const [categoriaHotel, setCategoriaHotel] = useState('')
+  const [hotelPrice, setHotelPrice] = useState(1500)
+  const serviciosRef = useRef(null)
 
-  const [radioKm, setRadioKm] = useState(5)
-  const [activityPrice, setActivityPrice] = useState(100)
+  const [fechaActividad, setFechaActividad] = useState('')
+  const [tiposActividad, setTiposActividad] = useState([])
+  const [tiposActividadOpen, setTiposActividadOpen] = useState(false)
+  const [soloMenores, setSoloMenores] = useState(false)
+  const [activityPrice, setActivityPrice] = useState(500)
+  const tiposActividadRef = useRef(null)
+  const serviciosButtonRef = useRef(null)
+  const tiposButtonRef = useRef(null)
+  const [serviciosPosicion, setServiciosPosicion] = useState({ top: 0, left: 0, width: 0 })
+  const [tiposPosicion, setTiposPosicion] = useState({ top: 0, left: 0, width: 0 })
 
   const [showFormViaje, setShowFormViaje] = useState(false)
   const [formViaje, setFormViaje] = useState({
@@ -48,10 +91,40 @@ export default function HomePage() {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setDropdownOpen(false)
       }
+      if (serviciosRef.current && !serviciosRef.current.contains(e.target)) {
+        setServiciosOpen(false)
+      }
+      if (tiposActividadRef.current && !tiposActividadRef.current.contains(e.target)) {
+        setTiposActividadOpen(false)
+      }
+    }
+    function handleScroll(e) {
+      if (!serviciosRef.current?.contains(e.target)) {
+        setServiciosOpen(false)
+      }
+      if (!tiposActividadRef.current?.contains(e.target)) {
+        setTiposActividadOpen(false)
+      }
     }
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    window.addEventListener('scroll', handleScroll, true)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('scroll', handleScroll, true)
+    }
   }, [])
+
+  function toggleServicio(servicio) {
+    setServiciosHotel(prev =>
+      prev.includes(servicio) ? prev.filter(s => s !== servicio) : [...prev, servicio]
+    )
+  }
+
+  function toggleTipoActividad(tipo) {
+    setTiposActividad(prev =>
+      prev.includes(tipo) ? prev.filter(t => t !== tipo) : [...prev, tipo]
+    )
+  }
 
   async function handleSearch() {
     if (!searchQuery.trim()) {
@@ -71,21 +144,23 @@ export default function HomePage() {
             destino: searchQuery.trim(),
             fecha: fechaIda || new Date().toISOString().split('T')[0],
             adultos: adultosVuelo,
+            clase: claseVuelo,
           },
         })
       } else if (activeTab === 'filters-hotels') {
-        res = await api.get('/busqueda/hoteles', {
-          params: {
-            destino: searchQuery.trim(),
-            checkIn: checkIn || new Date().toISOString().split('T')[0],
-            checkOut: checkOut || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-            adultos: adultosHotel,
-          },
-        })
+        const params = { destino: searchQuery.trim() }
+        if (checkIn) params.checkIn = checkIn
+        if (checkOut) params.checkOut = checkOut
+        params.maxPersonas = personasPorHab
+        if (habitacionesHotel > 0) params.numHabitaciones = habitacionesHotel
+        if (serviciosHotel.length > 0) params.servicios = serviciosHotel.join(',')
+        res = await api.get('/busqueda/hoteles', { params })
       } else {
-        res = await api.get('/busqueda/actividades', {
-          params: { ciudad: searchQuery.trim(), radio: radioKm },
-        })
+        const params = { ciudad: searchQuery.trim() }
+        if (fechaActividad) params.fecha = fechaActividad
+        if (soloMenores) params.soloMenores = true
+        if (tiposActividad.length > 0) params.tipos = tiposActividad.join(',')
+        res = await api.get('/busqueda/actividades', { params })
       }
       setResultados(res.data || [])
     } catch {
@@ -124,24 +199,26 @@ export default function HomePage() {
     } else if (activeTab === 'filters-hotels') {
       tipo = 'hotel'
       datos = {
-        nombre: item.nombre,
-        precio: String(item.precio),
-        checkin: checkIn,
-        checkout: checkOut,
-        imagenUrl: item.imagenUrl || '',
+        nombre: item.hotel || item.nombre || '',
+        precio: String(item.precioNoche ?? item.precio ?? ''),
+        checkin: item.fechaEntrada || checkIn || '',
+        checkout: item.fechaSalida || checkOut || '',
+        ciudad: item.ciudad || '',
+        direccion: item.direccion || '',
+        categoria: item.categoria || '',
       }
     } else {
       tipo = 'lugar'
       datos = {
         nombre: item.nombre,
-        ciudad: searchQuery,
-        lat: String(item.lat),
-        lon: String(item.lon),
+        ciudad: item.ciudad || searchQuery,
+        precio: String(item.precio ?? ''),
+        tipoActividad: (item.tipoActividad || []).join(', '),
       }
     }
     try {
       await api.post('/favoritos', { tipo, datos })
-      const key = item.id || item.xid || item.nombre
+      const key = getFavKey(item)
       setSavedFavorites(prev => new Set([...prev, key]))
     } catch {
       alert('Error al guardar el favorito')
@@ -149,7 +226,7 @@ export default function HomePage() {
   }
 
   function getFavKey(item) {
-    return item.id || item.xid || item.nombre
+    return item.id || item.xid || item.hotel || item.nombre
   }
 
   function openEditor(isGroup) {
@@ -172,8 +249,15 @@ export default function HomePage() {
     const filtrados = activeTab === 'filters-flights'
       ? resultados.filter(r => r.precio <= flightPrice)
       : activeTab === 'filters-hotels'
-      ? resultados.filter(r => r.precio <= hotelPrice)
-      : resultados
+      ? resultados.filter(r => {
+          if (r.precioNoche > hotelPrice) return false
+          if (categoriaHotel && r.categoria) {
+            const estrellasHotel = parseInt(r.categoria) || 0
+            if (estrellasHotel < parseInt(categoriaHotel)) return false
+          }
+          return true
+        })
+      : resultados.filter(r => r.precio <= activityPrice)
 
     if (loading) {
       return (
@@ -199,22 +283,48 @@ export default function HomePage() {
           {filtrados.map((vuelo, i) => {
             const key = getFavKey(vuelo)
             const saved = savedFavorites.has(key)
+            const [fechaSal, horaSal] = vuelo.horaSalida ? vuelo.horaSalida.split('T') : ['', '']
+            const [fechaLleg, horaLleg] = vuelo.horaLlegada ? vuelo.horaLlegada.split('T') : ['', '']
+            const horaSalida = horaSal ? horaSal.slice(0, 5) : ''
+            const horaLlegada = horaLleg ? horaLleg.slice(0, 5) : ''
             return (
-              <div className="card" key={i}>
-                <div className="card-image placeholder-img">
-                  <span className="badge"><i className="ph ph-airplane-tilt"></i> {vuelo.aerolinea}</span>
-                  <button
-                    className={`btn-favorite${saved ? ' favorited' : ''}`}
-                    onClick={() => guardarFavorito(vuelo)}
-                  >
-                    <i className={`ph ph-heart${saved ? ' ph-fill' : ''}`}></i>
-                  </button>
-                </div>
-                <div className="card-content">
-                  <h3>{vuelo.origen} → {vuelo.destino}</h3>
-                  <p>{vuelo.horaSalida} → {vuelo.horaLlegada} · {vuelo.duracion}</p>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px' }}>
-                    <span className="tag tag-green">{vuelo.precio.toFixed(2)} {vuelo.moneda}</span>
+              <div className="card" key={i} style={{ position: 'relative' }}>
+                <button
+                  className={`btn-favorite${saved ? ' favorited' : ''}`}
+                  onClick={() => guardarFavorito(vuelo)}
+                  style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 1 }}
+                >
+                  <i className={`ph ph-heart${saved ? ' ph-fill' : ''}`}></i>
+                </button>
+                <div className="card-content" style={{ paddingTop: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <i className="ph ph-airplane-tilt" style={{ color: 'var(--accent)', fontSize: '18px' }}></i>
+                    <span style={{ fontWeight: 600, fontSize: '15px' }}>{vuelo.aerolinea}</span>
+                  </div>
+                  <h3 style={{ margin: '6px 0 12px' }}>{vuelo.origen} → {vuelo.destino}</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+                    <div>
+                      <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '0 0 2px' }}>SALIDA</p>
+                      <p style={{ margin: 0, fontWeight: 600 }}>{horaSalida}</p>
+                      <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>{fechaSal}</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '0 0 2px' }}>LLEGADA</p>
+                      <p style={{ margin: 0, fontWeight: 600 }}>{horaLlegada}</p>
+                      <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>{fechaLleg}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                    <i className="ph ph-clock"></i>
+                    <span>Duración: {vuelo.duracion}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span className="tag" style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                      {{ ECONOMY: 'Turista', BUSINESS: 'Negocios', FIRST: 'Primera Clase' }[vuelo.clase] || 'Turista'}
+                    </span>
+                    <span className="tag tag-green" style={{ fontSize: '15px', fontWeight: 700 }}>
+                      {vuelo.precio != null ? vuelo.precio.toFixed(2) : '—'} {vuelo.moneda}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -229,29 +339,69 @@ export default function HomePage() {
           {filtrados.map((hotel, i) => {
             const key = getFavKey(hotel)
             const saved = savedFavorites.has(key)
+            const estrellas = parseInt(hotel.categoria) || 0
             return (
-              <div className="card" key={i}>
-                <div className="card-image placeholder-img" style={{ position: 'relative', overflow: 'hidden' }}>
-                  {hotel.imagenUrl && (
-                    <img
-                      src={hotel.imagenUrl}
-                      alt={hotel.nombre}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 }}
-                    />
+              <div className="card" key={i} style={{ position: 'relative' }}>
+                <button
+                  className={`btn-favorite${saved ? ' favorited' : ''}`}
+                  onClick={() => guardarFavorito(hotel)}
+                  style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 1 }}
+                >
+                  <i className={`ph ph-heart${saved ? ' ph-fill' : ''}`}></i>
+                </button>
+                <div className="card-content" style={{ paddingTop: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <i className="ph ph-buildings" style={{ color: 'var(--accent)', fontSize: '18px' }}></i>
+                    <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      {hotel.ciudad}, {hotel.pais}
+                    </span>
+                  </div>
+                  <h3 style={{ margin: '6px 0 6px' }}>{hotel.hotel}</h3>
+                  <p style={{ margin: '0 0 10px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    <i className="ph ph-map-pin"></i> {hotel.direccion}
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '10px' }}>
+                    {estrellas > 0 && (
+                      <span style={{ color: '#f5b400', fontSize: '15px' }}>
+                        {'★'.repeat(estrellas)}{'☆'.repeat(Math.max(0, 5 - estrellas))}
+                      </span>
+                    )}
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '6px' }}>
+                      {hotel.categoria}
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+                    <div>
+                      <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '0 0 2px' }}>ENTRADA</p>
+                      <p style={{ margin: 0, fontWeight: 600, fontSize: '13px' }}>{hotel.fechaEntrada}</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '0 0 2px' }}>SALIDA</p>
+                      <p style={{ margin: 0, fontWeight: 600, fontSize: '13px' }}>{hotel.fechaSalida}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', marginBottom: '10px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    <span><i className="ph ph-users"></i> Máx. {hotel.maxPersonas} personas/hab.</span>
+                    <span><i className="ph ph-door"></i> {hotel.numHabitaciones} hab.</span>
+                  </div>
+                  {hotel.serviciosIncluidos && hotel.serviciosIncluidos.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '12px' }}>
+                      {hotel.serviciosIncluidos.map((s, idx) => (
+                        <span key={idx} style={{
+                          fontSize: '10px',
+                          background: 'var(--surface-2)',
+                          color: 'var(--text-secondary)',
+                          padding: '3px 8px',
+                          borderRadius: '10px'
+                        }}>{s}</span>
+                      ))}
+                    </div>
                   )}
-                  <span className="badge">{'★'.repeat(Math.min(hotel.estrellas, 5)) || '★'}</span>
-                  <button
-                    className={`btn-favorite${saved ? ' favorited' : ''}`}
-                    onClick={() => guardarFavorito(hotel)}
-                  >
-                    <i className={`ph ph-heart${saved ? ' ph-fill' : ''}`}></i>
-                  </button>
-                </div>
-                <div className="card-content">
-                  <h3>{hotel.nombre}</h3>
-                  <p>Puntuación: {hotel.puntuacion > 0 ? hotel.puntuacion.toFixed(1) : 'N/A'} / 10</p>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px' }}>
-                    <span className="tag tag-blue">{hotel.precio.toFixed(2)} {hotel.moneda}/noche</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>por noche</span>
+                    <span className="tag tag-green" style={{ fontSize: '15px', fontWeight: 700 }}>
+                      {hotel.precioNoche != null ? hotel.precioNoche.toFixed(2) : '—'} €
+                    </span>
                   </div>
                 </div>
               </div>
@@ -266,21 +416,62 @@ export default function HomePage() {
           const key = getFavKey(act)
           const saved = savedFavorites.has(key)
           return (
-            <div className="card" key={i}>
-              <div className="card-image placeholder-img">
-                <span className="badge"><i className="ph ph-map-pin"></i> {act.tipo}</span>
-                <button
-                  className={`btn-favorite${saved ? ' favorited' : ''}`}
-                  onClick={() => guardarFavorito(act)}
-                >
-                  <i className={`ph ph-heart${saved ? ' ph-fill' : ''}`}></i>
-                </button>
-              </div>
-              <div className="card-content">
-                <h3>{act.nombre}</h3>
-                <p style={{ textTransform: 'capitalize' }}>{act.tipo}</p>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px' }}>
-                  <span className="tag tag-blue">Actividad</span>
+            <div className="card" key={i} style={{ position: 'relative' }}>
+              <button
+                className={`btn-favorite${saved ? ' favorited' : ''}`}
+                onClick={() => guardarFavorito(act)}
+                style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 1 }}
+              >
+                <i className={`ph ph-heart${saved ? ' ph-fill' : ''}`}></i>
+              </button>
+              <div className="card-content" style={{ paddingTop: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <i className="ph ph-ticket" style={{ color: 'var(--accent)', fontSize: '18px' }}></i>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    {act.ciudad}, {act.pais}
+                  </span>
+                </div>
+                <h3 style={{ margin: '6px 0 6px' }}>{act.nombre}</h3>
+                <p style={{ margin: '0 0 10px', fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                  {act.descripcion}
+                </p>
+                {act.tipoActividad && act.tipoActividad.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '10px' }}>
+                    {act.tipoActividad.map((t, idx) => (
+                      <span key={idx} style={{
+                        fontSize: '10px',
+                        background: 'var(--surface-2)',
+                        color: 'var(--text-secondary)',
+                        padding: '3px 8px',
+                        borderRadius: '10px'
+                      }}>{t}</span>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '10px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  {act.fecha && <span><i className="ph ph-calendar"></i> {act.fecha}</span>}
+                  {act.duracion && <span><i className="ph ph-clock"></i> {act.duracion}</span>}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {act.puntuacion > 0 && (
+                      <span style={{ fontSize: '12px', color: '#f5b400', fontWeight: 600 }}>
+                        ★ {act.puntuacion.toFixed(1)}
+                      </span>
+                    )}
+                    {act.menoresIncluidos && (
+                      <span style={{
+                        fontSize: '10px',
+                        background: '#e8f5e9',
+                        color: '#2e7d32',
+                        padding: '2px 8px',
+                        borderRadius: '10px'
+                      }}>Familiar</span>
+                    )}
+                  </div>
+                  <span className="tag tag-green" style={{ fontSize: '15px', fontWeight: 700 }}>
+                    {act.precio === 0 ? 'Gratis' : `${act.precio.toFixed(2)} €`}
+                  </span>
                 </div>
               </div>
             </div>
@@ -352,10 +543,10 @@ export default function HomePage() {
               </div>
               <div className="filter-item">
                 <label>Clase</label>
-                <select>
-                  <option value="turista">Turista</option>
-                  <option value="business">Business</option>
-                  <option value="vip">Primera Clase (VIP)</option>
+                <select value={claseVuelo} onChange={e => setClaseVuelo(e.target.value)}>
+                  <option value="ECONOMY">Turista</option>
+                  <option value="BUSINESS">Negocios</option>
+                  <option value="FIRST">Primera Clase</option>
                 </select>
               </div>
               <div className="filter-item">
@@ -381,30 +572,111 @@ export default function HomePage() {
                 <input type="date" value={checkOut} onChange={e => setCheckOut(e.target.value)} />
               </div>
               <div className="filter-item">
-                <label>Adultos</label>
+                <label>Personas por habitación: {personasPorHab === 1 ? 'desde 1': `desde ${personasPorHab}`}</label>
+                <input
+                  type="range"
+                  min="1"
+                  max="20"
+                  value={personasPorHab}
+                  step="1"
+                  onChange={e => setPersonasPorHab(Number(e.target.value))}
+                />
+              </div>
+              <div className="filter-item">
+                <label>Habitaciones</label>
                 <input
                   type="number"
-                  min="1"
+                  min="0"
                   max="10"
-                  value={adultosHotel}
-                  onChange={e => setAdultosHotel(Number(e.target.value))}
+                  value={habitacionesHotel}
+                  onChange={e => setHabitacionesHotel(Number(e.target.value))}
                 />
               </div>
               <div className="filter-item">
                 <label>Categoría</label>
-                <select>
+                <select value={categoriaHotel} onChange={e => setCategoriaHotel(e.target.value)}>
                   <option value="">Cualquiera</option>
                   <option value="3">3 Estrellas o más</option>
                   <option value="4">4 Estrellas o más</option>
                   <option value="5">5 Estrellas</option>
                 </select>
               </div>
+              <div className="filter-item" ref={serviciosRef}>
+                <label>Servicios {serviciosHotel.length > 0 && `(${serviciosHotel.length})`}</label>
+                <button
+                  ref={serviciosButtonRef}
+                  type="button"
+                  onClick={() => {
+                    if (!serviciosOpen && serviciosButtonRef.current) {
+                      const r = serviciosButtonRef.current.getBoundingClientRect()
+                      setServiciosPosicion({ top: r.bottom + 4, left: r.left, width: r.width })
+                    }
+                    setServiciosOpen(o => !o)
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-main)',
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <span style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {serviciosHotel.length === 0 ? 'Cualquiera' : serviciosHotel.join(', ')}
+                  </span>
+                  <i className={`ph ph-caret-${serviciosOpen ? 'up' : 'down'}`}></i>
+                </button>
+                {serviciosOpen && (
+                  <div style={{
+                    position: 'fixed',
+                    top: serviciosPosicion.top,
+                    left: serviciosPosicion.left,
+                    width: serviciosPosicion.width,
+                    zIndex: 9999,
+                    background: 'var(--bg-main)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '6px',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                  }}>
+                    {SERVICIOS_HOTEL.map(s => (
+                      <label
+                        key={s}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          borderBottom: '1px solid var(--border-color)'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={serviciosHotel.includes(s)}
+                          onChange={() => toggleServicio(s)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        {s}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="filter-item">
                 <label>Precio Máx: {hotelPrice}€/noche</label>
                 <input
                   type="range"
                   min="20"
-                  max="1000"
+                  max="1500"
                   value={hotelPrice}
                   step="10"
                   onChange={e => setHotelPrice(Number(e.target.value))}
@@ -414,36 +686,92 @@ export default function HomePage() {
 
             <div className={`filter-panel${activeTab === 'filters-activities' ? ' active' : ''}`}>
               <div className="filter-item">
-                <label>Radio de búsqueda: {radioKm} km</label>
-                <input
-                  type="range"
-                  min="1"
-                  max="50"
-                  value={radioKm}
-                  step="1"
-                  onChange={e => setRadioKm(Number(e.target.value))}
-                />
+                <label>Fecha (desde)</label>
+                <input type="date" value={fechaActividad} onChange={e => setFechaActividad(e.target.value)} />
               </div>
-              <div className="filter-item">
-                <label>Fecha</label>
-                <input type="date" />
-              </div>
-              <div className="filter-item">
-                <label>Tipo de Actividad</label>
-                <select>
-                  <option value="todas">Todas</option>
-                  <option value="tour">Tour guiado</option>
-                  <option value="museo">Museos e Historia</option>
-                  <option value="aventura">Aventura y Naturaleza</option>
-                </select>
+              <div className="filter-item" ref={tiposActividadRef}>
+                <label>Tipo de actividad {tiposActividad.length > 0 && `(${tiposActividad.length})`}</label>
+                <button
+                  ref={tiposButtonRef}
+                  type="button"
+                  onClick={() => {
+                    if (!tiposActividadOpen && tiposButtonRef.current) {
+                      const r = tiposButtonRef.current.getBoundingClientRect()
+                      setTiposPosicion({ top: r.bottom + 4, left: r.left, width: r.width })
+                    }
+                    setTiposActividadOpen(o => !o)
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-main)',
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <span style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {tiposActividad.length === 0 ? 'Todas' : tiposActividad.join(', ')}
+                  </span>
+                  <i className={`ph ph-caret-${tiposActividadOpen ? 'up' : 'down'}`}></i>
+                </button>
+                {tiposActividadOpen && (
+                  <div style={{
+                    position: 'fixed',
+                    top: tiposPosicion.top,
+                    left: tiposPosicion.left,
+                    width: tiposPosicion.width,
+                    zIndex: 9999,
+                    background: 'var(--bg-main)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '6px',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                  }}>
+                    {TIPOS_ACTIVIDAD.map(t => (
+                      <label
+                        key={t}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          borderBottom: '1px solid var(--border-color)'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={tiposActividad.includes(t)}
+                          onChange={() => toggleTipoActividad(t)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        {t}
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="filter-item checkbox-item">
                 <label style={{ cursor: 'pointer', marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input type="checkbox" /> Apto para menores (Familiar)
+                  <input
+                    type="checkbox"
+                    checked={soloMenores}
+                    onChange={e => setSoloMenores(e.target.checked)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  Apto para menores (Familiar)
                 </label>
               </div>
               <div className="filter-item">
-                <label>Precio Máximo: {activityPrice}€</label>
+                <label>Precio Máximo: {activityPrice === 500 ? 'Sin límite' : `${activityPrice}€`}</label>
                 <input
                   type="range"
                   min="0"
@@ -461,7 +789,9 @@ export default function HomePage() {
       {showResults ? (
         <div style={{ marginTop: '20px', textAlign: 'left', maxWidth: '800px', marginLeft: 'auto', marginRight: 'auto' }}>
           <h2 style={{ marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
-            Resultados para "{searchQuery}"
+            {activeTab === 'filters-flights' && resultados.length > 0
+              ? `Vuelos ${resultados[0].origen} → ${resultados[0].destino}`
+              : `Resultados para "${searchQuery}"`}
           </h2>
           {renderResultados()}
           <button
