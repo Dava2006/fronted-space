@@ -1,11 +1,20 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
+import * as Y from 'yjs'
 import api from '../api/axiosConfig'
 import TextBlock from '../components/blocks/TextBlock'
 import FlightBlock from '../components/blocks/FlightBlock'
 import HotelBlock from '../components/blocks/HotelBlock'
 import RouteBlock from '../components/blocks/RouteBlock'
 import Cajon from '../components/Cajon'
+import useItinerarioSocket, { uint8ToBase64, base64ToUint8 } from '../hooks/useItinerarioSocket'
+
+const AVATAR_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899']
+function colorParaId(id) {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) hash = (id.charCodeAt(i) + hash * 31) | 0
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+}
 
 export default function ItineraryPage() {
   const { id } = useParams()
@@ -13,6 +22,27 @@ export default function ItineraryPage() {
   const [viaje, setViaje] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  const ydoc = useMemo(() => new Y.Doc(), [id])
+
+  const handleWsUpdate = useCallback(
+    (base64) => {
+      Y.applyUpdate(ydoc, base64ToUint8(base64), 'remote')
+    },
+    [ydoc]
+  )
+
+  const { connected, usuariosActivos, sendUpdate } = useItinerarioSocket(id, handleWsUpdate)
+
+  useEffect(() => {
+    const handler = (update, origin) => {
+      if (origin !== 'remote') {
+        sendUpdate(uint8ToBase64(update))
+      }
+    }
+    ydoc.on('update', handler)
+    return () => ydoc.off('update', handler)
+  }, [ydoc, sendUpdate])
 
   useEffect(() => {
     api.get(`/viajes/${id}`)
@@ -64,9 +94,14 @@ export default function ItineraryPage() {
   }
 
   function renderBlock(bloque) {
-    const props = { key: bloque.id, bloque, viajeId: id, onDelete: () => deleteBlock(bloque.id) }
+    const props = {
+      key: bloque.id,
+      bloque,
+      viajeId: id,
+      onDelete: () => deleteBlock(bloque.id),
+    }
     switch (bloque.tipo) {
-      case 'texto':  return <TextBlock   {...props} />
+      case 'texto':  return <TextBlock   {...props} ydoc={ydoc} />
       case 'vuelo':  return <FlightBlock {...props} />
       case 'hotel':  return <HotelBlock  {...props} />
       case 'lugar':  return <RouteBlock  {...props} />
@@ -78,6 +113,7 @@ export default function ItineraryPage() {
   if (error)   return <div style={{ padding: '40px', textAlign: 'center', color: '#dc2626' }}>{error}</div>
 
   const bloques = viaje.itinerario ?? []
+  const usuarioId = localStorage.getItem('usuarioId')
 
   return (
     <div className="itinerary-view">
@@ -103,11 +139,39 @@ export default function ItineraryPage() {
 
         {viaje.grupal && (
           <div className="collaborators-bar">
-            <div className="avatars-group" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {usuariosActivos.map(uid => (
+                <div
+                  key={uid}
+                  title={uid === usuarioId ? 'Tú' : 'Colaborador'}
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: colorParaId(uid),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    border: '2px solid white',
+                    cursor: 'default',
+                    flexShrink: 0,
+                  }}
+                >
+                  {uid.slice(-2).toUpperCase()}
+                </div>
+              ))}
+
               <span className="collab-status">
-                <span className="pulse-dot"></span> Sincronizado
+                {connected
+                  ? <><span className="pulse-dot"></span> Sincronizado</>
+                  : <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Conectando...</span>
+                }
               </span>
             </div>
+
             <button style={{ background: 'transparent', border: '1px solid var(--border-color)', padding: '8px 12px', borderRadius: '6px', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <i className="ph ph-share-network"></i> Compartir
             </button>
