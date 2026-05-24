@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
+import Collaboration from '@tiptap/extension-collaboration'
 import api from '../../api/axiosConfig'
 
-export default function TextBlock({ bloque, viajeId, onDelete }) {
+export default function TextBlock({ bloque, viajeId, onDelete, ydoc }) {
   const [titulo, setTitulo] = useState(bloque?.dato?.titulo ?? '')
 
   const debounceBody  = useRef(null)
@@ -12,10 +13,11 @@ export default function TextBlock({ bloque, viajeId, onDelete }) {
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({ history: ydoc ? false : undefined }),
       Placeholder.configure({ placeholder: 'Escribe tus notas aquí...' }),
+      ...(ydoc ? [Collaboration.configure({ document: ydoc, field: `block-${bloque.id}` })] : []),
     ],
-    content: bloque?.contenido ?? '',
+    content: ydoc ? undefined : (bloque?.contenido ?? ''),
     onUpdate({ editor }) {
       clearTimeout(debounceBody.current)
       debounceBody.current = setTimeout(() => {
@@ -27,6 +29,18 @@ export default function TextBlock({ bloque, viajeId, onDelete }) {
       }, 800)
     },
   })
+
+  useEffect(() => {
+    if (!editor || !ydoc) return
+    const fragment = ydoc.getXmlFragment(`block-${bloque.id}`)
+    const hayContenidoMongo =
+      bloque?.contenido &&
+      bloque.contenido !== '<p></p>' &&
+      bloque.contenido.trim() !== ''
+    if (fragment.length === 0 && hayContenidoMongo) {
+      editor.commands.setContent(bloque.contenido)
+    }
+  }, [editor])
 
   function handleTituloChange(e) {
     const val = e.target.value
