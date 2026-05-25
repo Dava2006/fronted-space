@@ -194,7 +194,7 @@ export default function HomePage() {
       if (activeTab === 'filters-flights') {
         res = await api.get('/busqueda/vuelos', {
           params: {
-            origen: origenVuelo.trim() || 'Madrid',
+            origen: origenVuelo.trim(),
             destino: searchQuery.trim(),
             fecha: fechaIda || new Date().toISOString().split('T')[0],
             adultos: adultosVuelo,

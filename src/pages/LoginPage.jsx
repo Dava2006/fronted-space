@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useGoogleLogin } from '@react-oauth/google'
 import api from '../api/axiosConfig'
 
@@ -36,9 +36,6 @@ export default function LoginPage() {
     return () => document.body.classList.remove('login-body')
   }, [])
 
-  if (localStorage.getItem('token')) {
-    return <Navigate to="/" replace />
-  }
 
   function guardarSesion(data) {
     localStorage.setItem('token', data.token)
