@@ -208,7 +208,7 @@ export default function LoginPage() {
                     onChange={e => setRegisterData({ ...registerData, nombreUsuario: e.target.value })}
                   />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div className="form-grid-2">
                   <div className="input-group">
                     <label>Nombre</label>
                     <input
@@ -242,7 +242,7 @@ export default function LoginPage() {
                     onChange={e => setRegisterData({ ...registerData, password: e.target.value })}
                   />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div className="form-grid-2">
                   <div className="input-group">
                     <label>Teléfono</label>
                     <input

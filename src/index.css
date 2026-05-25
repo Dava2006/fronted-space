@@ -1089,6 +1089,30 @@ body {
     text-decoration: underline;
 }
 
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+@media (max-width: 767px) {
+    .login-body {
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+        align-items: flex-start;
+    }
+    .login-form-section {
+        padding: 30px 20px;
+        min-height: 100vh;
+        justify-content: flex-start;
+        padding-top: 40px;
+    }
+    .form-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
 .modal-overlay {
     position: fixed;
     top: 0;

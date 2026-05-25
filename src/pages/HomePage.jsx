@@ -890,8 +890,8 @@ export default function HomePage() {
                   type="number"
                   min="0"
                   max="10"
-                  value={habitacionesHotel}
-                  onChange={e => setHabitacionesHotel(Number(e.target.value))}
+                  value={habitacionesHotel || ''}
+                  onChange={e => setHabitacionesHotel(e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0)}
                 />
               </div>
               <div className="filter-item">
