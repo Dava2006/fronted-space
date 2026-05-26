@@ -122,7 +122,7 @@ export default function HotelBlock({ bloque, viajeId, onDelete, onDesvincular, o
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
               <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>por noche</span>
               <span className="tag tag-green" style={{ fontSize: '15px', fontWeight: 700 }}>
-                {dr.precioNoche != null ? Number(dr.precioNoche).toFixed(2) : '—'} EUR
+                {dr.precioNoche != null ? Number(dr.precioNoche).toFixed(1).replace('.', ',') : '—'} EUR
               </span>
             </div>
           </div>

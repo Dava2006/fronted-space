@@ -167,7 +167,7 @@ export default function Cajon({ onAdd, onFavChange, onEstructuraCambiada }) {
                       )}
                       {seccion.tipo === 'hotel' && item.precioNoche != null && (
                         <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
-                          {Number(item.precioNoche).toFixed(0)} EUR/noche
+                          {Number(item.precioNoche).toFixed(2).replace('.', ',')} EUR/noche
                         </div>
                       )}
                     </div>

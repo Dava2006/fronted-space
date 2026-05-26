@@ -428,7 +428,7 @@ export default function HomePage() {
     const horaSalida = horaSal ? horaSal.slice(0, 5) : ''
     const horaLlegada = horaLleg ? horaLleg.slice(0, 5) : ''
     return (
-      <div className="card" key={`${tab}-v-${idx}`} style={{ position: 'relative', minWidth: '280px', flexShrink: 0 }}>
+      <div className="card" key={`${tab}-v-${idx}`} style={{ position: 'relative', width: '280px', flexShrink: 0 }}>
         <button className={`btn-favorite${saved ? ' favorited' : ''}`} onClick={() => toggleFavorito(vuelo, tab)} style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 1, opacity: 1 }}>
           <i className={`ph ph-heart${saved ? ' ph-fill' : ''}`}></i>
         </button>
@@ -459,7 +459,7 @@ export default function HomePage() {
               {{ ECONOMY: 'Turista', BUSINESS: 'Negocios', FIRST: 'Primera Clase' }[vuelo.clase] || 'Turista'}
             </span>
             <span className="tag tag-green" style={{ fontSize: '15px', fontWeight: 700 }}>
-              {vuelo.precio != null ? vuelo.precio.toFixed(2) : '—'} EUR
+              {vuelo.precio != null ? vuelo.precio.toFixed(2).replace('.', ',') : '—'} EUR
             </span>
           </div>
           <button className="btn-buscar" style={{ width: '100%', padding: '6px 12px', fontSize: '13px' }} onClick={() => abrirSelectorViaje(vuelo, tab)}>
@@ -475,7 +475,7 @@ export default function HomePage() {
     const saved = savedFavMap.has(key)
     const estrellas = parseInt(hotel.categoria) || 0
     return (
-      <div className="card" key={`${tab}-h-${idx}`} style={{ position: 'relative', minWidth: '240px', flexShrink: 0 }}>
+      <div className="card" key={`${tab}-h-${idx}`} style={{ position: 'relative', width: '280px', flexShrink: 0 }}>
         <button className={`btn-favorite${saved ? ' favorited' : ''}`} onClick={() => toggleFavorito(hotel, tab)} style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 1, opacity: 1 }}>
           <i className={`ph ph-heart${saved ? ' ph-fill' : ''}`}></i>
         </button>
@@ -516,7 +516,7 @@ export default function HomePage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '10px', marginBottom: '10px' }}>
             <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>por noche</span>
             <span className="tag tag-green" style={{ fontSize: '15px', fontWeight: 700 }}>
-              {hotel.precioNoche != null ? hotel.precioNoche.toFixed(2) : '—'} EUR
+              {hotel.precioNoche != null ? hotel.precioNoche.toFixed(2).replace('.', ',') : '—'} EUR
             </span>
           </div>
           <button className="btn-buscar" style={{ width: '100%', padding: '6px 12px', fontSize: '13px' }} onClick={() => abrirSelectorViaje(hotel, tab)}>
@@ -531,7 +531,7 @@ export default function HomePage() {
     const key = getItemKey(act, tab)
     const saved = savedFavMap.has(key)
     return (
-      <div className="card" key={`${tab}-a-${idx}`} style={{ position: 'relative', minWidth: '240px', flexShrink: 0 }}>
+      <div className="card" key={`${tab}-a-${idx}`} style={{ position: 'relative', width: '280px', flexShrink: 0 }}>
         <button className={`btn-favorite${saved ? ' favorited' : ''}`} onClick={() => toggleFavorito(act, tab)} style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 1, opacity: 1 }}>
           <i className={`ph ph-heart${saved ? ' ph-fill' : ''}`}></i>
         </button>
@@ -559,7 +559,7 @@ export default function HomePage() {
               {act.menoresIncluidos && <span style={{ fontSize: '10px', background: '#e8f5e9', color: '#2e7d32', padding: '2px 8px', borderRadius: '10px' }}>Familiar</span>}
             </div>
             <span className="tag tag-green" style={{ fontSize: '15px', fontWeight: 700 }}>
-              {act.precio === 0 ? 'Gratis' : `${act.precio.toFixed(2)} EUR`}
+              {act.precio === 0 ? 'Gratis' : `${act.precio.toFixed(2).replace('.', ',')} EUR`}
             </span>
           </div>
           <button className="btn-buscar" style={{ width: '100%', padding: '6px 12px', fontSize: '13px' }} onClick={() => abrirSelectorViaje(act, tab)}>
@@ -647,7 +647,7 @@ export default function HomePage() {
                       {{ ECONOMY: 'Turista', BUSINESS: 'Negocios', FIRST: 'Primera Clase' }[vuelo.clase] || 'Turista'}
                     </span>
                     <span className="tag tag-green" style={{ fontSize: '15px', fontWeight: 700 }}>
-                      {vuelo.precio != null ? vuelo.precio.toFixed(2) : '—'} EUR
+                      {vuelo.precio != null ? vuelo.precio.toFixed(2).replace('.', ',') : '—'} EUR
                     </span>
                   </div>
                   <button className="btn-buscar" style={{ width: '100%', padding: '6px 12px', fontSize: '13px' }} onClick={() => abrirSelectorViaje(vuelo)}>
@@ -710,7 +710,7 @@ export default function HomePage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '10px', marginBottom: '10px' }}>
                     <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>por noche</span>
                     <span className="tag tag-green" style={{ fontSize: '15px', fontWeight: 700 }}>
-                      {hotel.precioNoche != null ? hotel.precioNoche.toFixed(2) : '—'} EUR
+                      {hotel.precioNoche != null ? hotel.precioNoche.toFixed(2).replace('.', ',') : '—'} EUR
                     </span>
                   </div>
                   <button className="btn-buscar" style={{ width: '100%', padding: '6px 12px', fontSize: '13px' }} onClick={() => abrirSelectorViaje(hotel)}>
@@ -758,7 +758,7 @@ export default function HomePage() {
                     {act.menoresIncluidos && <span style={{ fontSize: '10px', background: '#e8f5e9', color: '#2e7d32', padding: '2px 8px', borderRadius: '10px' }}>Familiar</span>}
                   </div>
                   <span className="tag tag-green" style={{ fontSize: '15px', fontWeight: 700 }}>
-                    {act.precio === 0 ? 'Gratis' : `${act.precio.toFixed(2)} EUR`}
+                    {act.precio === 0 ? 'Gratis' : `${act.precio.toFixed(2).replace('.', ',')} EUR`}
                   </span>
                 </div>
                 <button className="btn-buscar" style={{ width: '100%', padding: '6px 12px', fontSize: '13px' }} onClick={() => abrirSelectorViaje(act)}>
