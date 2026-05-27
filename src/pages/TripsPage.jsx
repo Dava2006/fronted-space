@@ -300,7 +300,7 @@ function TripCard({ viaje, usuarioId, onNavigate, onDelete, onCreadorSalir, onSa
             )}
           </div>
         )}
-        <div onClick={e => e.stopPropagation()}>
+        <div onClick={e => e.stopPropagation()} style={{ marginTop: 'auto' }}>
           {!confirmando ? (
             <button
               onClick={() => setConfirmando(true)}
@@ -339,10 +339,6 @@ function TripCard({ viaje, usuarioId, onNavigate, onDelete, onCreadorSalir, onSa
             </div>
           )}
         </div>
-      </div>
-      <div className="card-content">
-        <h3>{viaje.titulo}</h3>
-        <p>{viaje.fechaSalida} → {viaje.fechaLlegada}</p>
       </div>
     </div>
   )
